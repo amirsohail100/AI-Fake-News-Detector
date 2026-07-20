@@ -50,4 +50,28 @@ To run this application properly, ensure the following pipeline files are presen
 2. Place the required pipeline files (`model_ann.h5`, `tokenizer.pkl`, `columns.pkl`) in the root directory.
 3. Run the application script to start the local server.
 
+## Cloud Deployment
+
+```bash
+git clone https://github.com/ai-on-cloud/AI_ML_DL.git
+```
+
+```bash
+cd AI_ML_DL/ALL_ML_ALL_APPs/Pass_model/DL_LSTM_news
+```
+
+```bash
+streamlit run app.py
+```
+
+## 📄 License
+
+This project is licensed under the MIT License.
+
+## 📝 Author
+
+👤 **AI on Cloud**
+
+- Github: [@ai-on-cloud](https://github.com/ai-on-cloud)
+
 AI Fake News Detector: An advanced web application powered by a Deep Learning Artificial Neural Network (ANN) that analyzes news text and classifies it as Real or Fake with an outstanding 98% accuracy. Paste text for instant verification.
