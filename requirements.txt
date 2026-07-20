@@ -1,0 +1,11 @@
+# ---- Data Analysis & Manipulation ----
+pandas>=2.0.0
+numpy>=1.24.0
+
+# ---- Visualization ----
+seaborn>=0.12.0
+matplotlib>=3.7.0
+
+# ---- Machine Learning & Deep Learning ----
+tensorflow>=2.15.0
+scikit-learn>=1.2.0
