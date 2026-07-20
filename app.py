@@ -41,9 +41,9 @@ that analyzes news text and classifies whether the information is **Real** or **
 def load_assets():
     assets = {"model": None, "tokenizer": None, "columns": None, "error": None}
     try:
-        model_path = "model.h5"
-        tokens_path = "tokens.pkl"
-        column_path = "column.pkl"
+        model_path = "model_ann.h5"
+        tokens_path = "tokenizer.pkl"
+        column_path = "columns.pkl"
         
         # Check if all files exist
         missing_files = [f for f in [model_path, tokens_path, column_path] if not os.path.exists(f)]
