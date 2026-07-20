@@ -53,15 +53,19 @@ To run this application properly, ensure the following pipeline files are presen
 ## Cloud Deployment
 
 ```bash
-git clone https://github.com/ai-on-cloud/AI_ML_DL.git
+git clone https://github.com/amirsohail100/AI-Fake-News-Detector.git
 ```
 
 ```bash
-cd AI_ML_DL/ALL_ML_ALL_APPs/Pass_model/DL_LSTM_news
+cd AI-Fake-News-Detector
 ```
 
 ```bash
 streamlit run app.py
+```
+
+```bash
+python install -r requirements.txt
 ```
 
 ## 📄 License
