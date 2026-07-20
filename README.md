@@ -40,9 +40,9 @@ model_ann = Sequential([
 
 To run this application properly, ensure the following pipeline files are present in your project directory:
 
-- `model.h5` (Trained ANN Model)
-- `tokens.pkl` (Tokenizer file)
-- `column.pkl` (Data preprocessing layout)
+- `model_ann.h5` (Trained ANN Model)
+- `tokenizer.pkl` (Tokenizer file)
+- `columns.pkl` (Data preprocessing layout)
 
 ## 🚀 Getting Started
 
