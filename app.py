@@ -55,14 +55,18 @@ def clean_text(text):
 def load_assets():
     assets = {"model": None, "tokenizer": None, "columns": None, "error": None}
     try:
-        model_path = "model_ann.h5"
-        tokens_path = "tokenizer.pkl"
-        column_path = "columns.pkl"
+        # Get exact directory path of app.py
+        BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+        model_path = os.path.join(BASE_DIR, "model_ann.h5")
+        tokens_path = os.path.join(BASE_DIR, "tokenizer.pkl")
+        column_path = os.path.join(BASE_DIR, "columns.pkl")
         
-        # Check if files exist
+        # Check if all files exist
         missing_files = [f for f in [model_path, tokens_path, column_path] if not os.path.exists(f)]
         if missing_files:
-            raise FileNotFoundError(f"Missing required pipeline files: {', '.join(missing_files)}")
+            missing_names = [os.path.basename(f) for f in missing_files]
+            raise FileNotFoundError(f"Missing required pipeline files: {', '.join(missing_names)}")
 
         from tensorflow.keras.models import load_model
         
@@ -72,9 +76,9 @@ def load_assets():
         assets["columns"] = joblib.load(column_path)
         
     except FileNotFoundError as fnf_error:
-        assets["error"] = f"📁 File Error: {fnf_error}. Ensure model_ann.h5, tokenizer.pkl, and columns.pkl are in the same folder."
+        assets["error"] = f"📁 File Error: {fnf_error}"
     except Exception as e:
-        assets["error"] = f"❌ Error loading assets: {str(e)}. Check your TensorFlow/Joblib environment."
+        assets["error"] = f"❌ Error loading assets: {str(e)}"
         
     return assets
 
