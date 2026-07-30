@@ -2,6 +2,9 @@ import streamlit as st
 import numpy as np
 import joblib
 import os
+import re
+import string
+from tensorflow.keras.preprocessing.sequence import pad_sequences
 
 # Set up page styling and configurations
 st.set_page_config(
@@ -10,7 +13,7 @@ st.set_page_config(
     layout="centered"
 )
 
-# Custom styling for a modern look
+# Custom styling
 st.markdown("""
     <style>
     .main {
@@ -32,9 +35,20 @@ st.markdown("""
 
 st.title("📰 AI Fake News Detector")
 st.markdown("""
-This is an advanced web application powered by an **Artificial Neural Network (ANN)** model 
-that analyzes news text and classifies whether the information is **Real** or **Fake** with an outstanding **98% accuracy**.
+This application analyzes news text using a trained **LSTM Neural Network** 
+to classify whether the input content is **Real** or **Fake**.
 """)
+
+# ---- Text Preprocessing Helper Function ----
+def clean_text(text):
+    text = text.lower()  # Lowercase conversion
+    text = re.sub(r'\[.*?\]', '', text)
+    text = re.sub(r'https?://\S+|www\.\S+', '', text)  # Remove URLs
+    text = re.sub(r'<.*?>+', '', text)  # Remove HTML tags
+    text = re.sub(r'[%s]' % re.escape(string.punctuation), '', text)  # Remove punctuation
+    text = re.sub(r'\n', ' ', text)
+    text = re.sub(r'\w*\d\w*', '', text)  # Remove words containing numbers
+    return text.strip()
 
 # ---- Model & Asset Loading Pipeline ----
 @st.cache_resource
@@ -45,97 +59,100 @@ def load_assets():
         tokens_path = "tokenizer.pkl"
         column_path = "columns.pkl"
         
-        # Check if all files exist
+        # Check if files exist
         missing_files = [f for f in [model_path, tokens_path, column_path] if not os.path.exists(f)]
         if missing_files:
             raise FileNotFoundError(f"Missing required pipeline files: {', '.join(missing_files)}")
 
-        # Lazy import of heavy deep learning modules to optimize performance
         from tensorflow.keras.models import load_model
         
-        # Load the artifacts securely
+        # Load artifacts
         assets["model"] = load_model(model_path)
         assets["tokenizer"] = joblib.load(tokens_path)
         assets["columns"] = joblib.load(column_path)
         
     except FileNotFoundError as fnf_error:
-        assets["error"] = f"📁 File Error: {fnf_error}. Please ensure model.h5, tokens.pkl, and column.pkl are present in the directory."
+        assets["error"] = f"📁 File Error: {fnf_error}. Ensure model_ann.h5, tokenizer.pkl, and columns.pkl are in the same folder."
     except Exception as e:
-        assets["error"] = f"❌ Error loading assets: {str(e)}. Please check your environment dependencies (TensorFlow/Joblib)."
+        assets["error"] = f"❌ Error loading assets: {str(e)}. Check your TensorFlow/Joblib environment."
         
     return assets
 
-# Load baseline assets
+# Load assets
 assets = load_assets()
 
-# ---- User Input Area (Kept visible even if loading failed) ----
+# ---- User Input Area ----
 news_text = st.text_area(
-    "Paste the news text content for verification below:", 
-    height=220, 
-    placeholder="Enter the full text or paragraph of the news article here..."
+    "Paste the news headline or short news content below:", 
+    height=180, 
+    placeholder="Enter short news headline or 1-2 sentences here..."
 )
 
 # Predict Action Trigger
 if st.button("Verify News Authenticity", use_container_width=True):
-    # Check asset validity at runtime inside execution sequence
     if assets["error"] is not None:
         st.error(assets["error"])
-        st.warning("⚠️ Application pipeline cannot process requests because the required binary files failed to load correctly.")
-    elif assets["model"] is None or assets["tokenizer"] is None or assets["columns"] is None:
+        st.warning("⚠️ Application pipeline cannot process requests because files failed to load.")
+    elif assets["model"] is None or assets["tokenizer"] is None:
         st.error("❌ Critical pipeline error: Architecture artifacts are missing or corrupted.")
     elif not news_text.strip():
         st.warning("⚠️ Input validation failed: Please enter or paste text inside the content box first!")
     else:
-        with st.spinner("Artificial Neural Network (ANN) is computing token probabilities..."):
+        with st.spinner("LSTM Model is computing token sequence probabilities..."):
             try:
-                # 1. Processing via loaded tokenizer
-                # processed_text = assets["tokenizer"].transform([news_text])
-                # Convert sparse structure if applicable:
-                # if hasattr(processed_text, "toarray"): processed_text = processed_text.toarray()
+                # 1. Clean the raw text using preprocessing rules
+                cleaned_input = clean_text(news_text)
                 
-                # 2. Reindexing or aligning based on columns schema
-                # final_features = ... (use assets["columns"] if structural alignment is required)
+                # 2. Text to Sequence via Keras Tokenizer
+                sequences = assets["tokenizer"].texts_to_sequences([cleaned_input])
                 
-                # 3. Model inference calculation 
-                # prediction_prob = assets["model"].predict(processed_text)[0][0]
-                # is_real = prediction_prob > 0.5
+                # 3. Sequence Padding (MAX_LEN ko training ke waqt rakhe gaye size se match karein)
+                MAX_LEN = 200
+                processed_text = pad_sequences(sequences, maxlen=MAX_LEN, padding='post', truncating='post')
                 
-                # Mock result placeholder (Replace with your actual binary prediction logic)
-                is_real = True  
+                # 4. Model Prediction
+                prediction = assets["model"].predict(processed_text)
+                prediction_prob = float(prediction[0][0]) if hasattr(prediction[0], "__len__") else float(prediction[0])
+                
+                # Show Raw Score for debugging
+                st.info(f"📊 **Raw Model Output Score:** `{prediction_prob:.4f}`")
+
+                # Decision Logic (Assuming > 0.5 is REAL, <= 0.5 is FAKE)
+                # Agar score ulta ho, toh condition ko (prediction_prob <= 0.5) kar lein.
+                is_real = prediction_prob > 0.5
                 
                 st.success("✨ Analysis Completed Successfully!")
                 
-                # Render results dynamically using native HTML cards with corrected key parameter
+                # Render results dynamically
                 if is_real:
                     st.balloons()
                     st.markdown("""
                     <div style="background-color:#e6f4ea; padding:22px; border-radius:10px; border-left: 8px solid #137333; margin-top:15px;">
                         <h3 style="color:#137333; margin:0; font-size: 20px;">✅ Authentic Content (REAL)</h3>
-                        <p style="color:#1d1d1d; margin:10px 0 0 0; font-size:15px;">According to our Deep Learning ANN pipeline, the linguistics, semantics, and patterns match credible news reporting structures.</p>
+                        <p style="color:#1d1d1d; margin:10px 0 0 0; font-size:15px;">According to our LSTM Deep Learning model, the sequence patterns match credible news structures.</p>
                     </div>
                     """, unsafe_allow_html=True)
                 else:
                     st.markdown("""
                     <div style="background-color:#fce8e6; padding:22px; border-radius:10px; border-left: 8px solid #c5221f; margin-top:15px;">
                         <h3 style="color:#c5221f; margin:0; font-size: 20px;">🚨 Suspicious Content (FAKE)</h3>
-                        <p style="color:#1d1d1d; margin:10px 0 0 0; font-size:15px;">Warning! The Deep Learning model detected high-probability patterns strongly associated with synthetic text, fabrications, or misinformation.</p>
+                        <p style="color:#1d1d1d; margin:10px 0 0 0; font-size:15px;">Warning! The Deep Learning model detected patterns strongly associated with unverified or fake text.</p>
                     </div>
                     """, unsafe_allow_html=True)
                     
             except Exception as pred_error:
                 st.error(f"⚙️ Runtime Prediction Error: {str(pred_error)}")
-                st.info("Ensure the input dimensions and text preprocessing steps strictly match the expected tensor shape of the model.")
 
-# Visual Status Bar / Banner for Error Feedback if files aren't found on load
+# Visual Status Bar
 if assets["error"] is not None:
     st.sidebar.error("System Status: Offline")
     st.sidebar.info(assets["error"])
 else:
     st.sidebar.success("System Status: Operational")
-    st.sidebar.write("• Model: `model.h5` Loaded")
-    st.sidebar.write("• Tokenizer: `tokens.pkl` Loaded")
-    st.sidebar.write("• Columns: `column.pkl` Loaded")
+    st.sidebar.write("• Model: `model_ann.h5` Loaded")
+    st.sidebar.write("• Tokenizer: `tokenizer.pkl` Loaded")
+    st.sidebar.write("• Columns: `columns.pkl` Loaded")
 
 # Footer 
 st.markdown("---")
-st.markdown("<p style='text-align: center; color: #7f8c8d; font-size: 13px;'>ANN Deep Learning Infrastructure Layer | Accuracy: 98%</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #7f8c8d; font-size: 13px;'>LSTM Deep Learning Infrastructure Layer</p>", unsafe_allow_html=True)
